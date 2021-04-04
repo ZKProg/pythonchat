@@ -7,8 +7,9 @@ import time
 import re
 from queue import Queue
 
-################################################
+######################################################################################
 # Connection
+
 class Connection:
 
     def __init__(self, conn, addr, *args, **kwargs):
@@ -34,12 +35,12 @@ class Connection:
             except ConnectionResetError as e:
                 print(e)
 
-    def parseCommand(self, unparseData):
+    def parseCommand(self, unparsedData):
         """
         Parse the command, and get the associated data
         """
         pattern = '^#(?P<commandType>(.*)):(?P<commandData>(.*))#$'
-        result = re.search(pattern, unparseData)
+        result = re.search(pattern, unparsedData)
         if result != None:
             commandType = result['commandType']
             commandData = result['commandData']
@@ -47,16 +48,28 @@ class Connection:
         else:
             return (None, None)  
     
-
     def executeCommand(self, commandType, commandData):
         if commandType == 'quit':
-            self.conn.send(b'closing')
-            self.conn.close()
+            self.sendData('closing')
+            self.closeConnection()
+            
+    def sendData(self, dataString):
+        data = bytes(dataString, 'utf-8')
+        try:
+            self.conn.send(data)
+        except BrokenPipeError as e:
             self.isLive = False
+            self.conn.close()
+        except ConnectionResetError as e:
+            pass
 
+    def closeConnection(self):
+        self.conn.close()
+        self.isLive = False
 
-################################################
+########################################################################################
 # Server
+
 class Server:
 
     def __init__(self, *args, **kwargs):
@@ -91,6 +104,8 @@ class Server:
         except OSError as e:
             print('Error accepting new connection: {}'.format(e))
 
+##########################################################################################
+# Execute
 
 if __name__ == '__main__':
     PORT = int(sys.argv[1])

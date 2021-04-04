@@ -3,9 +3,10 @@ import sys
 import threading
 import socket as s 
 import sqlite3 as sql
+import msvcrt
 from queue import Queue
 
-##########################################
+############################################################################
 # Client
 
 class Client:
@@ -28,7 +29,7 @@ class Client:
         if 'port' in kwargs:
             self.PORT = int(kwargs['port'])
         # Threading -----------------------------------------------
-        self.sendThread = threading.Thread(target=self.send)
+        self.getInputThread = threading.Thread(target=self.getInput)
         self.recvThread = threading.Thread(target=self.recv)
 
     def connect(self):
@@ -39,31 +40,72 @@ class Client:
         try:
             self.socket.connect((self.ADDR, self.PORT))
             self.isLive = True
-            self.sendThread.start()
+            self.getInputThread.start()
             self.recvThread.start()
             
         except OSError as e:
             print('Error creating the connection: {}'.format(e))
             sys.exit(-1)
 
-    def send(self):
+    #######################################################################
+    # Threaded methods
+
+    def getInput(self):
         while self.isLive:
             command = input('> ')
             dataToSend = bytes(command, 'utf-8')
-            self.socket.send(dataToSend)
+            try:
+                self.socket.send(dataToSend)
+            except ConnectionResetError as e:
+                pass
+            except OSError as e:
+                self.isLive = False
+            except BrokenPipeError as e:
+                pass
+
+    def sendData(self, dataString):
+        data = bytes(dataString, 'utf-8')
+        try:
+            self.socket.send(data)
+        except BrokenPipeError as e:
+            self.closeConnection(e)
+        except ConnectionResetError as e:
+            self.closeConnection(e)
+        except OSError as e:
+            self.closeConnection(e)
 
     def recv(self):
         while self.isLive:
-            data = self.socket.recv(1024)
+            try:
+                data = self.socket.recv(1024)
+            except BrokenPipeError as e:
+                self.closeClient(e)
+            except ConnectionResetError as e:
+                self.closeClient(e)
+            except OSError as e:
+                self.closeClient(e)
             if not data: break
             if data.decode('utf-8') == 'closing':
-                print('Closing connection command received')
-                self.socket.close()
-                self.isLive = False
-            print('From server: {}'.format(data.decode('utf-8')))
+                self.socket.close()              
+                print('Closing connection command received.')  
 
+            #print('From server: {}'.format(data.decode('utf-8')))
+
+    def closeClient(self, e):
+        print('Closing client: ', e)
+        print('**** Press Enter to exit the client. ****')
+        self.isLive = False
+        
+
+
+
+
+############################################################################
+# Execute
 
 if __name__ == '__main__':
+    if os.name == 'nt': hostOs = 'Windows'
+    print('Executing client on {} platform.'.format(hostOs))
     ADDR = '127.0.0.1'
     PORT = int(sys.argv[1])
     client = Client(addr=ADDR, port=PORT)
