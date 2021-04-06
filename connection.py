@@ -21,7 +21,8 @@ class Connection:
         self.receiveThread = threading.Thread(target=self.recv)
         self.receiveThread.start()
         self.commandParser = CommandParser()
-        
+        self.id = None
+        self.isInitialized = False
 
     def recv(self):
         while self.isLive:
@@ -42,7 +43,11 @@ class Connection:
         if commandType == 'quit':
             self.sendData('closing')
             self.closeConnection()
-            
+        if commandType == 'init':
+            self.id = commandData
+            self.isInitialized = True
+            print('Connection id initialize to: ', self.id)
+
     def sendData(self, dataString):
         data = bytes(dataString, 'utf-8')
         try:
