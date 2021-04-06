@@ -3,7 +3,6 @@ import sys
 import threading
 import socket as s 
 import sqlite3 as sql
-import msvcrt
 from queue import Queue
 
 ############################################################################
@@ -58,21 +57,21 @@ class Client:
                 self.socket.send(dataToSend)
             except ConnectionResetError as e:
                 pass
-            except OSError as e:
-                self.isLive = False
             except BrokenPipeError as e:
                 pass
+            except OSError as e:
+                self.isLive = False
 
     def sendData(self, dataString):
         data = bytes(dataString, 'utf-8')
         try:
             self.socket.send(data)
         except BrokenPipeError as e:
-            self.closeConnection(e)
+            self.closeClient(e)
         except ConnectionResetError as e:
-            self.closeConnection(e)
+            self.closeClient(e)
         except OSError as e:
-            self.closeConnection(e)
+            self.closeClient(e)
 
     def recv(self):
         while self.isLive:
