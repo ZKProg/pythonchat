@@ -8,7 +8,7 @@ import re
 from queue import Queue
 from commandparser import CommandParser
 
-######################################################################################
+###################################################################################
 # Connection
 
 class Connection:

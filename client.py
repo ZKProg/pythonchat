@@ -103,8 +103,7 @@ class Client:
 # Execute
 
 if __name__ == '__main__':
-    if os.name == 'nt': hostOs = 'Windows'
-    print('Executing client on {} platform.'.format(hostOs))
+    print('Executing client on {} platform.'.format(os.name))
     ADDR = '127.0.0.1'
     PORT = int(sys.argv[1])
     client = Client(addr=ADDR, port=PORT)
